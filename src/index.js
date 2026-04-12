@@ -30,7 +30,15 @@ for (const file of commandFiles) {
 client.once('clientReady', () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
   console.log(`📦 Commands loaded: ${client.commands.size}`);
-
+  client.user.setPresence({
+    activities: [
+      {
+        name: 'stuDYING 📚',
+        type: 0 // PLAYING
+      }
+    ],
+    status: 'online'
+  });
   // Check and reset streaks every hour
   setInterval(() => {
     checkAndResetStreaks();

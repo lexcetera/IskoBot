@@ -1,6 +1,6 @@
 # 🎓 IskoBot
 
-A Discord bot built for the Iskord Community Server, a space for incoming UP Diliman freshmen to connect and make friends. IskoBot helps incoming students find classmates, manage their class schedules, discover study buddies, and build class channel streaks all within Discord.
+A Discord bot built for the Iskord Community Server, a space for incoming UP Diliman freshmen to connect and make friends. IskoBot helps incoming students find classmates, manage their class schedules, discover study buddies, and share resources all within Discord.
 
 ---
 
