@@ -65,7 +65,7 @@ const pages = [
     ]
   },
   {
-    title: '🔥 Streaks & Misc',
+    title: '🔥 Streaks',
     fields: [
       {
         name: '/streak info <course> <schedule>',
@@ -74,7 +74,41 @@ const pages = [
       {
         name: '/streak leaderboard',
         value: 'View the top 10 class channels ranked by their current streak.'
+      }
+    ]
+  },
+  {
+    title: '📊 Info & Stats',
+    fields: [
+      {
+        name: '/userinfo',
+        value: 'View your own profile — your college and registered classes.'
       },
+      {
+        name: '/userinfo <user>',
+        value: 'View another student\'s profile.\n**Example:** `/userinfo @john_doe`'
+      },
+      {
+        name: '/classinfo <course> <schedule>',
+        value: 'View info about a specific class — number of students, streak status, and resource count.\n**Example:** `/classinfo Math 21 TWHFX-1`'
+      },
+      {
+        name: '/serverstats',
+        value: 'View server-wide statistics — total registered students, unique classes, active streaks, and most popular courses.'
+      },
+      {
+        name: '/collegeinfo',
+        value: 'View student counts for all UP Diliman colleges.'
+      },
+      {
+        name: '/collegeinfo <college>',
+        value: 'View all students registered under a specific college.'
+      }
+    ]
+  },
+  {
+    title: '💡 Misc',
+    fields: [
       {
         name: '/advice',
         value: 'Get a random college survival tip. 💡'

@@ -1,6 +1,6 @@
 # 🎓 IskoBot
 
-A Discord bot built for the Iskord Community Server, a space for incoming UP Diliman freshmen to connect and make friends. IskoBot helps incoming students find classmates, manage their class schedules, discover study buddies, and share resources all within Discord.
+A Discord bot built for the Iskord Community Server, a space for incoming UP Diliman freshmen to connect and make friends. IskoBot helps incoming students find classmates, manage their class schedules, discover study buddies, and build class channel streaks all within Discord.
 
 ---
 
@@ -27,9 +27,13 @@ A Discord bot built for the Iskord Community Server, a space for incoming UP Dil
 - **Resources** — Share and browse study resources per course, accessible to all sections
 - **Class Streaks** — Class channels earn streaks when at least 3 different students message daily, similar to Snapchat streaks
 - **Streak Leaderboard** — See which class channels have the longest active streaks
+- **User Profiles** — View your own or another student's profile including their college and registered classes
+- **College Info** — See how many students are registered per UP Diliman college
+- **Server Statistics** — Dashboard showing total students, classes, streaks, and most popular courses
 - **Welcome Messages** — New members are greeted when they join the server
 - **FAQ System** — Keyword-based auto-responses for common questions
 - **College Advice** — Random college survival tips for freshmen
+- **Admin Suite** — Full admin command system for managing users, classes, resources, and data
 
 ---
 
@@ -102,6 +106,25 @@ In the Discord Developer Portal under your app's **Bot** tab, enable:
 - ✅ Server Members Intent
 - ✅ Message Content Intent
 
+### College Roles
+For `/userinfo` and `/collegeinfo` to work correctly, create roles in your Discord server with these exact names:
+- College of Architecture
+- College of Arts and Letters
+- College of Education
+- College of Engineering
+- College of Fine Arts
+- College of Home Economics
+- College of Human Kinetics
+- College of Law
+- College of Media and Communication
+- College of Music
+- College of Science
+- College of Social Sciences and Philosophy
+- National College of Public Administration and Governance
+- School of Economics
+- School of Library and Information Studies
+- School of Statistics
+
 ---
 
 ## 💬 Commands
@@ -145,12 +168,37 @@ In the Discord Developer Portal under your app's **Bot** tab, enable:
 | `/streak info <course> <schedule>` | View the current streak and today's activity for a class channel |
 | `/streak leaderboard` | View the top 10 class channels ranked by streak |
 
+### Info & Stats
+
+| Command | Description |
+|---|---|
+| `/userinfo` | View your own profile — college, registered classes |
+| `/userinfo <user>` | View another student's profile |
+| `/classinfo <course> <schedule>` | View info about a specific class — students, streak, resources |
+| `/serverstats` | View server-wide statistics — total students, classes, streaks, top courses |
+| `/collegeinfo` | View student counts for all UP Diliman colleges |
+| `/collegeinfo <college>` | View students registered under a specific college |
+
 ### Misc
 
 | Command | Description |
 |---|---|
 | `/advice` | Get a random college survival tip |
 | `/help` | Show the full command list with descriptions |
+
+### Admin Only
+
+> These commands are only visible and accessible to server administrators.
+
+| Command | Description |
+|---|---|
+| `/admin addclass <user> <course> <schedule>` | Add a class to a specific user |
+| `/admin removeclass <user> <course> <schedule>` | Remove a class from a specific user |
+| `/admin clearclasses <user>` | Clear all classes from a specific user |
+| `/admin removeuser <user>` | Completely erase a user from the system |
+| `/admin removeresource <course> <number>` | Remove a specific resource from a course by its number |
+| `/admin clearresources <course>` | Wipe all resources for a specific course |
+| `/admin wipedata <target>` | Wipe bot data — choose from users, streaks, resources, faqs, or all |
 
 ---
 
@@ -170,8 +218,13 @@ IskoBot/
 │   │   ├── commonclasses.js
 │   │   ├── resources.js
 │   │   ├── streak.js
+│   │   ├── userinfo.js
+│   │   ├── classinfo.js
+│   │   ├── serverstats.js
+│   │   ├── collegeinfo.js
 │   │   ├── advice.js
-│   │   └── help.js
+│   │   ├── help.js
+│   │   └── admin.js
 │   ├── data/                    ← auto-created on first run
 │   │   ├── users.json
 │   │   ├── streaks.json

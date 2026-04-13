@@ -43,4 +43,4 @@ function addResource(course, title, link, username) {
   writeResources(resources);
 }
 
-module.exports = { getResources, addResource };
+module.exports = { readResources, writeResources, getResources, addResource };
