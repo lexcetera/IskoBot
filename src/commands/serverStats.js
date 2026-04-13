@@ -1,7 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { readDB } = require('../utils/database');
 const { getAllStreaks } = require('../utils/streakManager');
-const { readResources } = require('../utils/resourceManager');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -13,11 +12,7 @@ module.exports = {
 
     const db = readDB();
     const streaks = getAllStreaks();
-    const resources = readResources();
 
-    const totalStudents = Object.keys(db).length;
-
-    // Count total unique classes
     const uniqueClasses = new Set();
     for (const user of Object.values(db)) {
       for (const c of user.classes) {
@@ -25,7 +20,6 @@ module.exports = {
       }
     }
 
-    // Most popular courses
     const courseCounts = {};
     for (const user of Object.values(db)) {
       for (const c of user.classes) {
@@ -38,24 +32,18 @@ module.exports = {
       .map(([course, count], i) => `${i + 1}. **${course}** — ${count} student(s)`)
       .join('\n') || 'No courses yet';
 
-    // Active streaks
     const activeStreaks = Object.values(streaks).filter(s => s.streak > 0).length;
-
-    // Total resources
-    const totalResources = Object.values(resources).reduce((acc, arr) => acc + arr.length, 0);
 
     const embed = new EmbedBuilder()
       .setTitle('📊 Server Statistics')
       .addFields(
-        { name: '👥 Registered Students', value: `${totalStudents}`, inline: true },
-        { name: '📚 Unique Classes', value: `${uniqueClasses.size}`, inline: true },
-        { name: '🔥 Active Streaks', value: `${activeStreaks}`, inline: true },
-        { name: '📎 Total Resources Shared', value: `${totalResources}`, inline: true },
-        { name: '🏆 Most Popular Courses', value: topCourses }
+        { name: '📚 Unique classes', value: `${uniqueClasses.size}`, inline: true },
+        { name: '🔥 Active streaks', value: `${activeStreaks}`, inline: true },
+        { name: '🏆 Most popular courses', value: topCourses }
       )
       .setColor(0x5865F2)
       .setFooter({ text: 'Iskord Community Server' });
 
     await interaction.editReply({ embeds: [embed] });
-  }
+  },
 };

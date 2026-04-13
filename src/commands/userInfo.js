@@ -1,24 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getUser } = require('../utils/database');
-
-const colleges = [
-  'College of Architecture',
-  'College of Arts and Letters',
-  'College of Education',
-  'College of Engineering',
-  'College of Fine Arts',
-  'College of Home Economics',
-  'College of Human Kinetics',
-  'College of Law',
-  'College of Media and Communication',
-  'College of Music',
-  'College of Science',
-  'College of Social Sciences and Philosophy',
-  'National College of Public Administration and Governance',
-  'School of Economics',
-  'School of Library and Information Studies',
-  'School of Statistics',
-];
+const { COLLEGE_ROLES } = require('../constants/colleges');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -38,28 +20,30 @@ module.exports = {
 
     if (!user) {
       return interaction.editReply({
-        content: `⚠️ **${target.username}** has not registered any classes yet!`,
+        content: `⚠️ **${target.username}** has not registered with the bot yet (no profile).`,
       });
     }
 
-    // Get college role from cache first, only fetch if not found
     let member = guild.members.cache.get(target.id);
     if (!member) {
       member = await guild.members.fetch(target.id).catch(() => null);
     }
 
     const collegeRole = member
-      ? member.roles.cache.find(r => colleges.includes(r.name))
+      ? member.roles.cache.find(r => COLLEGE_ROLES.includes(r.name))
       : null;
 
     const classList = user.classes.length > 0
       ? user.classes.map(c => `• **${c.course}** — ${c.schedule}`).join('\n')
       : 'No classes registered';
 
+    const bioText = (user.bio && user.bio.trim()) ? user.bio.trim() : 'No bio set';
+
     const embed = new EmbedBuilder()
       .setTitle(`👤 ${target.username}'s Profile`)
       .setThumbnail(target.displayAvatarURL())
       .addFields(
+        { name: '📝 Bio', value: bioText },
         { name: '🎓 College', value: collegeRole ? collegeRole.name : 'No college role assigned', inline: true },
         { name: '📚 Classes Registered', value: `${user.classes.length}`, inline: true },
         { name: '📖 Class List', value: classList }
@@ -68,5 +52,5 @@ module.exports = {
       .setFooter({ text: `User ID: ${target.id}` });
 
     await interaction.editReply({ embeds: [embed] });
-  }
+  },
 };

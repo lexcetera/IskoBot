@@ -89,8 +89,8 @@ module.exports = {
             );
 
             if (channel) {
-              // Check remaining students
               const { getClassmatesByClass } = require('../utils/database');
+              const { applyClassChannelPermissions } = require('../utils/channelManager');
               const remaining = getClassmatesByClass(userClass.course, userClass.schedule);
 
               if (remaining.length === 0) {
@@ -98,6 +98,7 @@ module.exports = {
                 await new Promise(resolve => setTimeout(resolve, 3000));
                 await channel.delete();
               } else {
+                await applyClassChannelPermissions(guild, channel, userClass.course, userClass.schedule);
                 await channel.send(`👋 <@${userId}> has left **${userClass.course} ${userClass.schedule}**.`);
               }
             }

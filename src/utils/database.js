@@ -28,7 +28,9 @@ function writeDB(data) {
 
 function getUser(userId) {
   const db = readDB();
-  return db[userId] || null;
+  const user = db[userId];
+  if (!user) return null;
+  return { ...user, bio: user.bio ?? '' };
 }
 
 function saveUser(userId, username) {
@@ -37,7 +39,8 @@ function saveUser(userId, username) {
     db[userId] = {
       userId,
       username,
-      classes: []
+      classes: [],
+      bio: ''
     };
     writeDB(db);
   }
@@ -112,4 +115,29 @@ function getUsersByCourse(course) {
   return results;
 }
 
-module.exports = { readDB, writeDB, getUser, saveUser, updateUser, getClassmates, getClassmatesByClass, getUsersByCourse };
+/** Unique { course, schedule } pairs across all users */
+function getAllClassSections() {
+  const db = readDB();
+  const keys = new Set();
+  for (const u of Object.values(db)) {
+    for (const c of u.classes) {
+      keys.add(`${c.course}|||${c.schedule}`);
+    }
+  }
+  return [...keys].map(line => {
+    const [course, schedule] = line.split('|||');
+    return { course, schedule };
+  });
+}
+
+module.exports = {
+  readDB,
+  writeDB,
+  getUser,
+  saveUser,
+  updateUser,
+  getClassmates,
+  getClassmatesByClass,
+  getUsersByCourse,
+  getAllClassSections,
+};
