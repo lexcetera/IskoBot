@@ -6,16 +6,14 @@ A Discord bot built for the Iskord Community Server, a space for incoming UP Dil
 
 ## 📋 Table of Contents
 
-## 📋 Table of Contents
-
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Commands](#commands)
-- [Project Structure](#project-structure)
-- [Data Storage](#data-storage)
-- [Contributing](#contributing)
+- [Features](#-features)
+- [Prerequisites](#-prerequisites)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Commands](#-commands)
+- [Project Structure](#-project-structure)
+- [Data Storage](#-data-storage)
+- [Contributing](#-contributing)
 
 ---
 
