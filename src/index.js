@@ -3,6 +3,9 @@ const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const { checkAndResetStreaks } = require('./utils/streakManager');
+const { COLLEGE_ROLES } = require('./constants/colleges');
+const { readDB } = require('./utils/database');
+const { applyClassChannelPermissions, classToChannelName } = require('./utils/channelManager');
 
 const client = new Client({
   intents: [
@@ -12,25 +15,6 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
   ]
 });
-
-const COLLEGE_ROLES = [
-  'College of Architecture',
-  'College of Arts and Letters',
-  'College of Education',
-  'College of Engineering',
-  'College of Fine Arts',
-  'College of Home Economics',
-  'College of Human Kinetics',
-  'College of Law',
-  'College of Media and Communication',
-  'College of Music',
-  'College of Science',
-  'College of Social Sciences and Philosophy',
-  'National College of Public Administration and Governance',
-  'School of Economics',
-  'School of Library and Information Studies',
-  'School of Statistics',
-];
 
 // Load commands
 client.commands = new Collection();
@@ -67,6 +51,28 @@ client.once('clientReady', async () => {
       }
     }
     console.log('✅ College roles check complete!');
+
+    console.log('🔒 Syncing class channel permissions...');
+    await guild.channels.fetch().catch(() => {});
+    const db = readDB();
+    const seen = new Set();
+    for (const user of Object.values(db)) {
+      for (const c of user.classes) {
+        const key = `${c.course}|||${c.schedule}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const channelName = classToChannelName(c.course, c.schedule);
+        const ch = guild.channels.cache.find(x => x.type === 0 && x.name === channelName);
+        if (ch) {
+          try {
+            await applyClassChannelPermissions(guild, ch, c.course, c.schedule);
+          } catch (e) {
+            console.error(`Permission sync ${channelName}:`, e.message);
+          }
+        }
+      }
+    }
+    console.log('✅ Class channel permission sync complete!');
   }
 
   // Check and reset streaks every hour

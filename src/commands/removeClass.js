@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { getUser, updateUser, getClassmatesByClass } = require('../utils/database');
+const { applyClassChannelPermissions } = require('../utils/channelManager');
 
 function normalizeCourse(course) {
   return course
@@ -70,11 +71,11 @@ module.exports = {
         const remaining = getClassmatesByClass(course, schedule);
 
         if (remaining.length === 0) {
-          // No students left — delete the channel
           await channel.send(`👋 <@${userId}> has left. No more students in **${course} ${schedule}**. Deleting channel...`);
-          await new Promise(resolve => setTimeout(resolve, 3000)); // wait 3 seconds so they can read it
+          await new Promise(resolve => setTimeout(resolve, 3000));
           await channel.delete(`No more students in ${course} ${schedule}`);
         } else {
+          await applyClassChannelPermissions(guild, channel, course, schedule);
           await channel.send(`👋 <@${userId}> has left **${course} ${schedule}**.`);
         }
       }

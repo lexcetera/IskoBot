@@ -82,7 +82,7 @@ const pages = [
     fields: [
       {
         name: '/userinfo',
-        value: 'View your own profile — your college and registered classes.'
+        value: 'View your profile — bio, college role, and registered classes.'
       },
       {
         name: '/userinfo <user>',
@@ -94,21 +94,37 @@ const pages = [
       },
       {
         name: '/serverstats',
-        value: 'View server-wide statistics — total registered students, unique classes, active streaks, and most popular courses.'
+        value: 'View public statistics: unique classes, active streaks, and most popular courses.'
       },
       {
-        name: '/collegeinfo',
-        value: 'View student counts for all UP Diliman colleges.'
+        name: '/setbio',
+        value: 'Set your profile bio (max 150 characters). Ephemeral. Shown on `/userinfo`.'
       },
       {
-        name: '/collegeinfo <college>',
-        value: 'View all students registered under a specific college.'
+        name: '/admin collegeinfo',
+        value: '**(Administrators)** College breakdown or list students in one college — same as the old `/collegeinfo`.'
+      },
+      {
+        name: '/admin serverstats',
+        value: '**(Administrators)** Extended stats, demographics (env role IDs), and bot registration counts.'
+      },
+      {
+        name: '/admin rolelist',
+        value: '**(Administrators)** List all members who have a given role (long lists are split into multiple messages).'
+      },
+      {
+        name: '/admin setreportrole',
+        value: '**(Administrators)** Set which role is pinged on new `/report`s, or omit the role to clear.'
       }
     ]
   },
   {
     title: '💡 Misc',
     fields: [
+      {
+        name: '/report <user> <reason>',
+        value: 'Submit a report to staff. Configure `/admin setreportrole` for pings and REPORT_CHANNEL_ID in the bot environment.'
+      },
       {
         name: '/advice',
         value: 'Get a random college survival tip. 💡'

@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { getUser, saveUser, updateUser, getClassmatesByClass } = require('../utils/database');
+const { getOrCreateClassChannel } = require('../utils/channelManager');
 
-// Normalize course name: "math 21" or "MATH 21" → "Math 21"
 function normalizeCourse(course) {
   return course
     .toLowerCase()
@@ -55,37 +55,8 @@ module.exports = {
     });
 
     try {
-      const channelName = `${course}-${schedule}`
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9-]/g, '');
-
-      await guild.channels.fetch();
-
-      let category = guild.channels.cache.find(
-        c => c.type === 4 && c.name.toLowerCase() === 'class channels'
-      );
-
-      if (!category) {
-        category = await guild.channels.create({
-          name: 'Class Channels',
-          type: 4,
-        });
-      }
-
-      let channel = guild.channels.cache.find(
-        c => c.type === 0 && c.name === channelName
-      );
-
-      if (!channel) {
-        channel = await guild.channels.create({
-          name: channelName,
-          type: 0,
-          parent: category.id,
-          topic: `Class channel for ${course} ${schedule}`,
-        });
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      await guild.channels.fetch().catch(() => {});
+      const channel = await getOrCreateClassChannel(guild, course, schedule);
 
       if (existingClassmates.length > 0) {
         await channel.send(
@@ -96,9 +67,8 @@ module.exports = {
           `🎉 <@${userId}> is the first to register **${course} ${schedule}**! More classmates will show up soon.`
         );
       }
-
     } catch (error) {
       console.error('Channel error:', error.message);
     }
-  }
+  },
 };

@@ -1,29 +1,14 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } = require('discord.js');
-const { getUser, updateUser, readDB, writeDB, getClassmatesByClass } = require('../utils/database');
+const { getUser, saveUser, updateUser, readDB, writeDB, getClassmatesByClass } = require('../utils/database');
 const { getResources } = require('../utils/resourceManager');
+const { COLLEGE_ROLES, collegeChoices } = require('../constants/colleges');
+const { setReportPingRoleId } = require('../utils/guildConfig');
+const { getOrCreateClassChannel, applyClassChannelPermissions } = require('../utils/channelManager');
+const { getAllStreaks } = require('../utils/streakManager');
 const fs = require('fs');
 const path = require('path');
 
 const dataDir = path.join(__dirname, '../data');
-
-const COLLEGE_ROLES = [
-  'College of Architecture',
-  'College of Arts and Letters',
-  'College of Education',
-  'College of Engineering',
-  'College of Fine Arts',
-  'College of Home Economics',
-  'College of Human Kinetics',
-  'College of Law',
-  'College of Media and Communication',
-  'College of Music',
-  'College of Science',
-  'College of Social Sciences and Philosophy',
-  'National College of Public Administration and Governance',
-  'School of Economics',
-  'School of Library and Information Studies',
-  'School of Statistics',
-];
 
 function normalizeCourse(course) {
   return course
@@ -80,6 +65,13 @@ async function confirmAction(interaction, description, onConfirm) {
 }
 
 const roleChoices = COLLEGE_ROLES.map(r => ({ name: r, value: r }));
+
+const DEMOGRAPHIC_ENV = [
+  { env: 'DEMOGRAPHIC_HE_HIM_ROLE_ID', label: 'He/Him' },
+  { env: 'DEMOGRAPHIC_SHE_HER_ROLE_ID', label: 'She/Her' },
+  { env: 'DEMOGRAPHIC_THEY_THEM_ROLE_ID', label: 'They/Them' },
+  { env: 'DEMOGRAPHIC_ANY_ROLE_ID', label: 'Any' },
+];
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -155,13 +147,201 @@ module.exports = {
           o.setName('role')
             .setDescription('College role to remove')
             .setRequired(true)
-            .addChoices(...roleChoices))),
+            .addChoices(...roleChoices)))
+
+    .addSubcommand(sub =>
+      sub.setName('collegeinfo')
+        .setDescription('College student counts (admin)')
+        .addStringOption(o =>
+          o.setName('college')
+            .setDescription('Specific college (optional)')
+            .setRequired(false)
+            .addChoices(...collegeChoices)))
+
+    .addSubcommand(sub =>
+      sub.setName('serverstats')
+        .setDescription('Extended server stats and demographics'))
+
+    .addSubcommand(sub =>
+      sub.setName('rolelist')
+        .setDescription('List members with a role')
+        .addRoleOption(o => o.setName('role').setDescription('Role to list').setRequired(true)))
+
+    .addSubcommand(sub =>
+      sub.setName('setreportrole')
+        .setDescription('Role to ping on /report (omit to clear)')
+        .addRoleOption(o =>
+          o.setName('role')
+            .setDescription('Ping this role on new reports')
+            .setRequired(false))),
 
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
 
     const sub = interaction.options.getSubcommand();
     const guild = interaction.client.guilds.cache.get(process.env.GUILD_ID);
+
+    // ========================
+    // /admin collegeinfo
+    // ========================
+    if (sub === 'collegeinfo') {
+      const selectedCollege = interaction.options.getString('college');
+
+      if (selectedCollege) {
+        const role = guild.roles.cache.find(r => r.name === selectedCollege);
+
+        if (!role) {
+          return interaction.editReply({
+            content: `⚠️ No role found for **${selectedCollege}**. Make sure the role exists in the server!`,
+          });
+        }
+
+        const members = role.members;
+        const memberList = members.size > 0
+          ? members.map(m => `• <@${m.id}> (${m.user.username})`).join('\n')
+          : 'No students registered yet';
+
+        const embed = new EmbedBuilder()
+          .setTitle(`🎓 ${selectedCollege}`)
+          .addFields(
+            { name: '👥 Total Students', value: `${members.size}`, inline: true },
+            { name: '📋 Student List', value: memberList }
+          )
+          .setColor(0x5865F2)
+          .setFooter({ text: 'Iskord Community Server' });
+
+        return interaction.editReply({ embeds: [embed] });
+      }
+
+      const counts = [];
+
+      for (const collegeName of COLLEGE_ROLES) {
+        const role = guild.roles.cache.find(r => r.name === collegeName);
+        counts.push({ name: collegeName, count: role ? role.members.size : 0 });
+      }
+
+      counts.sort((a, b) => b.count - a.count);
+
+      const list = counts
+        .map(c => `• **${c.name}** — ${c.count} student(s)`)
+        .join('\n');
+
+      const total = counts.reduce((acc, c) => acc + c.count, 0);
+
+      const embed = new EmbedBuilder()
+        .setTitle('🎓 College Breakdown')
+        .setDescription(list)
+        .addFields({ name: '👥 Total Students with College Roles', value: `${total}` })
+        .setColor(0x5865F2)
+        .setFooter({ text: 'Iskord Community Server' });
+
+      return interaction.editReply({ embeds: [embed] });
+    }
+
+    // ========================
+    // /admin serverstats
+    // ========================
+    if (sub === 'serverstats') {
+      await guild.members.fetch().catch(() => {});
+      const db = readDB();
+      const streaks = getAllStreaks();
+
+      const uniqueClasses = new Set();
+      for (const user of Object.values(db)) {
+        for (const c of user.classes) {
+          uniqueClasses.add(`${c.course} ${c.schedule}`);
+        }
+      }
+
+      const courseCounts = {};
+      for (const user of Object.values(db)) {
+        for (const c of user.classes) {
+          courseCounts[c.course] = (courseCounts[c.course] || 0) + 1;
+        }
+      }
+      const topCourses = Object.entries(courseCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([course, count], i) => `${i + 1}. **${course}** — ${count} student(s)`)
+        .join('\n') || 'No courses yet';
+
+      const activeStreaks = Object.values(streaks).filter(s => s.streak > 0).length;
+
+      const demoLines = [];
+      for (const { env: envKey, label } of DEMOGRAPHIC_ENV) {
+        const id = process.env[envKey];
+        if (!id) {
+          demoLines.push(`**${label}:** not configured`);
+          continue;
+        }
+        const role = guild.roles.cache.get(id) || await guild.roles.fetch(id).catch(() => null);
+        if (!role) {
+          demoLines.push(`**${label}:** invalid role id`);
+          continue;
+        }
+        demoLines.push(`**${label}:** ${role.members.size}`);
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle('📊 Server statistics (admin)')
+        .addFields(
+          { name: '👥 Server members', value: `${guild.memberCount}`, inline: true },
+          { name: '📚 Bot-registered users', value: `${Object.keys(db).length}`, inline: true },
+          { name: '📚 Unique classes', value: `${uniqueClasses.size}`, inline: true },
+          { name: '🔥 Active streaks', value: `${activeStreaks}`, inline: true },
+          { name: '🏆 Most popular courses', value: topCourses },
+          { name: '📣 Demographics (role counts)', value: demoLines.join('\n') }
+        )
+        .setColor(0x5865F2)
+        .setFooter({ text: 'Users with multiple pronoun roles are counted in each bucket.' });
+
+      return interaction.editReply({ embeds: [embed] });
+    }
+
+    // ========================
+    // /admin rolelist
+    // ========================
+    if (sub === 'rolelist') {
+      const role = interaction.options.getRole('role', true);
+      await guild.members.fetch().catch(() => {});
+      const list = role.members.map(m => `${m.user.tag} (<@${m.id}>)`);
+      if (list.length === 0) {
+        return interaction.editReply({ content: `**${role.name}** has no members.` });
+      }
+      const chunks = [];
+      let buf = '';
+      for (const line of list) {
+        const next = buf ? `${buf}\n${line}` : line;
+        if (next.length > 1900) {
+          chunks.push(buf);
+          buf = line;
+        } else {
+          buf = next;
+        }
+      }
+      if (buf) chunks.push(buf);
+
+      await interaction.editReply({
+        content: `**${role.name}** — ${role.members.size} member(s)\n\n${chunks[0]}`,
+      });
+      for (let i = 1; i < chunks.length; i++) {
+        await interaction.followUp({ content: chunks[i], ephemeral: true });
+      }
+      return;
+    }
+
+    // ========================
+    // /admin setreportrole
+    // ========================
+    if (sub === 'setreportrole') {
+      const role = interaction.options.getRole('role');
+      if (!role) {
+        setReportPingRoleId(null);
+        return interaction.editReply({ content: '✅ Report ping role cleared.' });
+      }
+      setReportPingRoleId(role.id);
+      return interaction.editReply({ content: `✅ Reports will ping **${role.name}** (\`${role.id}\`).` });
+    }
 
     // ========================
     // /admin addclass
@@ -171,7 +351,6 @@ module.exports = {
       const course = normalizeCourse(interaction.options.getString('course').trim());
       const schedule = interaction.options.getString('schedule').trim().toUpperCase();
 
-      const { saveUser } = require('../utils/database');
       saveUser(target.id, target.username);
       const user = getUser(target.id);
 
@@ -187,24 +366,8 @@ module.exports = {
       await interaction.editReply({ content: `✅ Added **${course} ${schedule}** to **${target.username}**'s classes!` });
 
       try {
-        const channelName = `${course}-${schedule}`.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-        await guild.channels.fetch();
-
-        let category = guild.channels.cache.find(c => c.type === 4 && c.name.toLowerCase() === 'class channels');
-        if (!category) {
-          category = await guild.channels.create({ name: 'Class Channels', type: 4 });
-        }
-
-        let channel = guild.channels.cache.find(c => c.type === 0 && c.name === channelName);
-        if (!channel) {
-          channel = await guild.channels.create({
-            name: channelName,
-            type: 0,
-            parent: category.id,
-            topic: `Class channel for ${course} ${schedule}`,
-          });
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        await guild.channels.fetch().catch(() => {});
+        const channel = await getOrCreateClassChannel(guild, course, schedule);
 
         if (existingClassmates.length > 0) {
           await channel.send(`@here 👋 Welcome <@${target.id}> to **${course} ${schedule}**! Say hi to your new classmate!`);
@@ -246,6 +409,7 @@ module.exports = {
             await new Promise(resolve => setTimeout(resolve, 3000));
             await channel.delete();
           } else {
+            await applyClassChannelPermissions(guild, channel, course, schedule);
             await channel.send(`👋 <@${target.id}> was removed from **${course} ${schedule}** by an admin.`);
           }
         }
@@ -284,6 +448,7 @@ module.exports = {
                   await new Promise(resolve => setTimeout(resolve, 3000));
                   await channel.delete();
                 } else {
+                  await applyClassChannelPermissions(guild, channel, userClass.course, userClass.schedule);
                   await channel.send(`👋 <@${target.id}> was removed from **${userClass.course} ${userClass.schedule}** by an admin.`);
                 }
               }
@@ -312,17 +477,22 @@ module.exports = {
         async () => {
           const classesToRemove = [...user.classes];
 
+          const db = readDB();
+          delete db[target.id];
+          writeDB(db);
+
           for (const userClass of classesToRemove) {
             try {
               const channelName = `${userClass.course}-${userClass.schedule}`.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
               const channel = guild.channels.cache.find(c => c.type === 0 && c.name === channelName);
               if (channel) {
-                const remaining = getClassmatesByClass(userClass.course, userClass.schedule).filter(u => u.userId !== target.id);
+                const remaining = getClassmatesByClass(userClass.course, userClass.schedule);
                 if (remaining.length === 0) {
                   await channel.send(`👋 <@${target.id}> was removed. No more students in **${userClass.course} ${userClass.schedule}**. Deleting channel...`);
                   await new Promise(resolve => setTimeout(resolve, 3000));
                   await channel.delete();
                 } else {
+                  await applyClassChannelPermissions(guild, channel, userClass.course, userClass.schedule);
                   await channel.send(`👋 <@${target.id}> was removed from **${userClass.course} ${userClass.schedule}** by an admin.`);
                 }
               }
@@ -330,10 +500,6 @@ module.exports = {
               console.error('Channel error:', err.message);
             }
           }
-
-          const db = readDB();
-          delete db[target.id];
-          writeDB(db);
 
           await interaction.editReply({ content: `✅ **${target.username}** has been completely removed from the system!`, embeds: [], components: [] });
         }
