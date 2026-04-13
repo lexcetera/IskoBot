@@ -98,6 +98,17 @@ client.on('messageCreate', require('./events/messageCreate'));
 client.on('guildMemberAdd', require('./events/guildMemberAdd'));
 client.on('guildMemberRemove', require('./events/guildMemberRemove'));
 
+/** Guild may be uncached; cache.get alone can return undefined and crash channel resolution. */
+async function resolveGuildForInteraction(interaction) {
+  if (interaction.guild) return interaction.guild;
+  if (!interaction.guildId) return null;
+  try {
+    return await interaction.client.guilds.fetch(interaction.guildId);
+  } catch {
+    return null;
+  }
+}
+
 async function handleConfessionModalSubmit(interaction) {
   if (interaction.customId !== CONFESSION_MODAL_ID) return;
 
@@ -118,8 +129,17 @@ async function handleConfessionModalSubmit(interaction) {
     });
   }
 
-  const guild = interaction.client.guilds.cache.get(interaction.guildId);
-  const reviewChannel = guild.channels.cache.get(reviewChannelId) || await guild.channels.fetch(reviewChannelId).catch(() => null);
+  const guild = await resolveGuildForInteraction(interaction);
+  if (!guild) {
+    return interaction.reply({
+      content: '⚠️ Could not load this server. Try again in a moment.',
+      ephemeral: true,
+    });
+  }
+
+  const reviewChannel =
+    guild.channels.cache.get(reviewChannelId) ||
+    (await guild.channels.fetch(reviewChannelId).catch(() => null));
   if (!reviewChannel || !reviewChannel.isTextBased()) {
     return interaction.reply({
       content: '⚠️ Confession review channel is missing or invalid.',
@@ -197,8 +217,17 @@ async function handleConfessionReviewButton(interaction) {
 
   if (isApprove) {
     const postChannelId = getConfessionPostChannelId();
-    const guild = interaction.client.guilds.cache.get(interaction.guildId);
-    const postChannel = guild.channels.cache.get(postChannelId) || await guild.channels.fetch(postChannelId).catch(() => null);
+    const guild = await resolveGuildForInteraction(interaction);
+    if (!guild) {
+      return interaction.reply({
+        content: '⚠️ Could not load this server. Try again in a moment.',
+        ephemeral: true,
+      });
+    }
+
+    const postChannel =
+      guild.channels.cache.get(postChannelId) ||
+      (await guild.channels.fetch(postChannelId).catch(() => null));
     if (!postChannel || !postChannel.isTextBased()) {
       return interaction.reply({
         content: '⚠️ Confession post channel is missing or invalid. Configure it with `/admin configureconfessions`.',
@@ -220,9 +249,16 @@ async function handleConfessionReviewButton(interaction) {
       postedMessageId: postedMessage.id,
     });
 
-    const approvedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
-      .setColor(0x57F287)
-      .addFields({ name: 'Review result', value: `✅ Approved by ${interaction.user.tag}` });
+    const baseEmbed = interaction.message.embeds[0];
+    const approvedEmbed = baseEmbed
+      ? EmbedBuilder.from(baseEmbed)
+          .setColor(0x57F287)
+          .addFields({ name: 'Review result', value: `✅ Approved by ${interaction.user.tag}` })
+      : new EmbedBuilder()
+          .setTitle('🕵️ Confession review')
+          .setColor(0x57F287)
+          .setDescription(confession.content)
+          .addFields({ name: 'Review result', value: `✅ Approved by ${interaction.user.tag}` });
 
     await interaction.update({ embeds: [approvedEmbed], components: [disabledActions] });
     return;
@@ -234,9 +270,16 @@ async function handleConfessionReviewButton(interaction) {
     reviewedBy: interaction.user.id,
   });
 
-  const rejectedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
-    .setColor(0xED4245)
-    .addFields({ name: 'Review result', value: `❌ Rejected by ${interaction.user.tag}` });
+  const rejectBase = interaction.message.embeds[0];
+  const rejectedEmbed = rejectBase
+    ? EmbedBuilder.from(rejectBase)
+        .setColor(0xED4245)
+        .addFields({ name: 'Review result', value: `❌ Rejected by ${interaction.user.tag}` })
+    : new EmbedBuilder()
+        .setTitle('🕵️ Confession review')
+        .setColor(0xED4245)
+        .setDescription(confession.content)
+        .addFields({ name: 'Review result', value: `❌ Rejected by ${interaction.user.tag}` });
 
   await interaction.update({ embeds: [rejectedEmbed], components: [disabledActions] });
 }
