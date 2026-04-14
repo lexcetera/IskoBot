@@ -7,6 +7,7 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
+  ActivityType,
   ButtonStyle
 } = require('discord.js');
 const fs = require('fs');
@@ -18,6 +19,7 @@ const { applyClassChannelPermissions, classToChannelName } = require('./utils/ch
 const { getConfessionPostChannelId, getConfessionReviewChannelId } = require('./utils/guildConfig');
 const { createPendingConfession, getConfessionById, updateConfession } = require('./utils/confessionManager');
 const { CONFESSION_MODAL_ID, CONFESSION_INPUT_ID } = require('./commands/confess');
+const statusesData = require("./data/statuses.json");
 
 const client = new Client({
   intents: [
@@ -27,6 +29,27 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
   ]
 });
+
+let index = 0;
+function setStatus() {
+  const status = statusesData.statuses[index];
+
+  if (!status) return;
+
+  // Convert string type → ActivityType enum
+  const typeMap = {
+    PLAYING: ActivityType.Playing,
+    WATCHING: ActivityType.Watching,
+    LISTENING: ActivityType.Listening,
+    COMPETING: ActivityType.Competing,
+  };
+
+  client.user.setActivity(status.name, {
+    type: typeMap[status.type] ?? ActivityType.Playing,
+  });
+
+  index = (index + 1) % statusesData.statuses.length;
+}
 
 // Load commands
 client.commands = new Collection();
@@ -45,7 +68,11 @@ for (const file of commandFiles) {
 client.once('clientReady', async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
   console.log(`📦 Commands loaded: ${client.commands.size}`);
+  // set first status immediately
+  setStatus();
 
+  // rotate every 15 seconds
+  setInterval(setStatus, 15 * 1000);
   // Auto-create college roles
   const guild = client.guilds.cache.get(process.env.GUILD_ID);
   if (guild) {
