@@ -60,7 +60,7 @@ module.exports = {
 
       if (existingClassmates.length > 0) {
         await channel.send(
-          `@here 👋 Welcome <@${userId}> to **${course} ${schedule}**! Say hi to your new classmate!`
+          `👋 Welcome <@${userId}> to **${course} ${schedule}**! Say hi to your new classmate!`
         );
       } else {
         await channel.send(

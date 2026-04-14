@@ -549,7 +549,7 @@ module.exports = {
         const channel = await getOrCreateClassChannel(guild, course, schedule);
 
         if (existingClassmates.length > 0) {
-          await channel.send(`@here 👋 Welcome <@${target.id}> to **${course} ${schedule}**! Say hi to your new classmate!`);
+          await channel.send(`👋 Welcome <@${target.id}> to **${course} ${schedule}**! Say hi to your new classmate!`);
         } else {
           await channel.send(`🎉 <@${target.id}> is the first to register **${course} ${schedule}**! More classmates will show up soon.`);
         }
