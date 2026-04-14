@@ -1,7 +1,7 @@
 const { recordMessage } = require('../utils/streakManager');
 const { getFaqs } = require('../utils/faqManager');
 
-const WINDOW_MS = 2000;
+const WINDOW_MS = 5000;
 const MAX_MESSAGES_IN_WINDOW = 10;
 const SPAM_WARNING = 'Kalma muna boi, baka madelay ka sa sobrang bilis mo';
 const spamTracker = new Map();
@@ -32,8 +32,14 @@ module.exports = async (message) => {
 
   // FAQ keyword check
   const faqs = getFaqs();
+
+  const words = content
+  .toLowerCase()
+  .replace(/[^\w\s]/g, "")
+  .split(/\s+/);
+
   for (const faq of faqs) {
-    if (faq.keywords.some(keyword => content.includes(keyword))) {
+    if (faq.keywords.some(keyword => words.includes(keyword.toLowerCase()))) {
       await message.reply(faq.response);
       return;
     }
