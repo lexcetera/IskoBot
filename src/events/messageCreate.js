@@ -2,7 +2,7 @@ const { recordMessage } = require('../utils/streakManager');
 const { getFaqs } = require('../utils/faqManager');
 
 const WINDOW_MS = 5000;
-const MAX_MESSAGES_IN_WINDOW = 10;
+const MAX_MESSAGES_IN_WINDOW = 5;
 const SPAM_WARNING = 'Kalma muna boi, baka madelay ka sa sobrang bilis mo';
 const spamTracker = new Map();
 
