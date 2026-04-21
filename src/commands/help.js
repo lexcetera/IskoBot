@@ -99,23 +99,7 @@ const pages = [
       {
         name: '/setbio',
         value: 'Set your profile bio (max 150 characters). Ephemeral. Shown on `/userinfo`.'
-      },
-      {
-        name: '/admin collegeinfo',
-        value: '**(Administrators)** College breakdown or list students in one college — same as the old `/collegeinfo`.'
-      },
-      {
-        name: '/admin serverstats',
-        value: '**(Administrators)** Extended stats, demographics (env role IDs), and bot registration counts.'
-      },
-      {
-        name: '/admin rolelist',
-        value: '**(Administrators)** List all members who have a given role (long lists are split into multiple messages).'
-      },
-      {
-        name: '/admin configurereports',
-        value: '**(Administrators)** Set the `/report` destination channel and staff ping role, view current settings, or use `clear_channel` / `clear_role`.'
-      }
+      }, 
     ]
   },
   {
